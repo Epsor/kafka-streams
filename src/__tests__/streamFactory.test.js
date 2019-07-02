@@ -19,10 +19,13 @@ describe('StreamFactory', () => {
       expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(0);
       expect(new StreamFactory()).toBeTruthy();
       expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(1);
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith({
-        event_cb: true,
-        'metadata.broker.list': 'localhost:9092',
-      });
+      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith(
+        expect.objectContaining({
+          noptions: expect.objectContaining({
+            'metadata.broker.list': 'localhost:9092',
+          }),
+        }),
+      );
     });
 
     it('should call KafkaStreams with default kafkaHost', () => {
@@ -31,10 +34,13 @@ describe('StreamFactory', () => {
       expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(0);
       expect(new StreamFactory()).toBeTruthy();
       expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(1);
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith({
-        event_cb: true,
-        'metadata.broker.list': 'myNewHostValue',
-      });
+      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith(
+        expect.objectContaining({
+          noptions: expect.objectContaining({
+            'metadata.broker.list': 'myNewHostValue',
+          }),
+        }),
+      );
     });
   });
 
@@ -55,7 +61,10 @@ describe('StreamFactory', () => {
 
   describe('getStream', () => {
     it('should call KafkaStreams.getKStream with sameValues', () => {
-      const getKStream = jest.fn(() => []);
+      const getKStream = jest.fn(() => ({
+        forEach: jest.fn(),
+        start: jest.fn(),
+      }));
       KafkaStreams.KafkaStreams = jest.fn(() => ({
         getKStream,
       }));
@@ -68,8 +77,10 @@ describe('StreamFactory', () => {
 
     it('should call KafkaStreams.getKStream.forEach with callback', () => {
       const forEach = jest.fn();
+      const start = jest.fn();
       const getKStream = jest.fn(() => ({
         forEach,
+        start,
       }));
       KafkaStreams.KafkaStreams = jest.fn(() => ({
         getKStream,
@@ -77,9 +88,27 @@ describe('StreamFactory', () => {
       const callback = jest.fn();
 
       expect(forEach).toHaveBeenCalledTimes(0);
+      expect(start).toHaveBeenCalledTimes(0);
       expect(new StreamFactory().getStream('topicName', callback)).toBeTruthy();
       expect(forEach).toHaveBeenCalledTimes(1);
-      expect(forEach).toHaveBeenCalledWith(callback);
+      expect(start).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call .value.toString when receiving a message from KafkaStreams.getKStream.forEach', () => {
+      const toString = jest.fn(() => 'str');
+      const callback = jest.fn();
+
+      expect(callback).toHaveBeenCalledTimes(0);
+      expect(toString).toHaveBeenCalledTimes(0);
+      StreamFactory.iterate(callback)({
+        value: {
+          toString,
+        },
+      });
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith('str');
+      expect(toString).toHaveBeenCalledTimes(1);
+      expect(toString).toHaveBeenCalledWith('utf-8');
     });
   });
 });

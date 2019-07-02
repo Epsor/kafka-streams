@@ -8,13 +8,27 @@ class StreamFactory {
    * @param {Object} options         - Stream options
    * @param {String} options.groupId - Stream group identifier
    */
-  constructor({ groupId, ...opts }) {
+  constructor({ groupId, ...opts } = {}) {
     this.kafkaStreams = new KafkaStreams({
-      event_cb: true,
-      'metadata.broker.list': process.env.KAFKA_HOST || 'localhost:9092',
-      'group.id': groupId,
-      'client.id': `${groupId}.${process.env.KAFKA_CLIENT_ID || '0'}`,
-      ...opts,
+      noptions: {
+        event_cb: true,
+        'metadata.broker.list': process.env.KAFKA_HOST || 'localhost:9092',
+        'group.id': groupId || 'defaultGroup',
+        'client.id': `${groupId}.${process.env.KAFKA_CLIENT_ID || '0'}`,
+        'fetch.min.bytes': 100,
+        'fetch.message.max.bytes': 2 * 1024 * 1024,
+        'queued.min.messages': 1,
+        'fetch.error.backoff.ms': 100,
+        'queued.max.messages.kbytes': 50,
+        'fetch.wait.max.ms': 60,
+        'queue.buffering.max.ms': 1000,
+        'batch.num.messages': 10000,
+        ...opts,
+      },
+      tconf: {
+        'auto.offset.reset': 'earliest',
+        'request.required.acks': 1,
+      },
     });
   }
 
@@ -37,9 +51,19 @@ class StreamFactory {
    */
   getStream(topicName, messageIterator) {
     const stream = this.kafkaStreams.getKStream(topicName);
-    stream.forEach(messageIterator);
 
-    return stream;
+    stream.forEach(StreamFactory.iterate(messageIterator));
+
+    stream.start();
+    return this;
+  }
+
+  /**
+   * Use from stream.forEach from this.getStream
+   * @private
+   */
+  static iterate(messageIterator) {
+    return message => messageIterator(message.value.toString('utf-8'));
   }
 }
 
