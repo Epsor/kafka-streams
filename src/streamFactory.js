@@ -1,7 +1,7 @@
 import { KafkaStreams } from 'kafka-streams';
 
 /**
- * @field {KafkaStreams} kafkaStreams
+ * @property {KafkaStreams} kafkaStreams
  */
 class StreamFactory {
   /**
