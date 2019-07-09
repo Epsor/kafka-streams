@@ -15,14 +15,15 @@
     "prepare": "npm run build",
     "test": "NODE_ENV=test jest --coverage",
     "clean": "rm -rf dist",
-    "build": "babel src -d dist --ignore 'src/**/*.test.js'"
+    "build": "babel src -d dist --ignore 'src/**/*.test.js'",
+    "start": "babel src -d dist --ignore 'src/**/*.test.js' --watch"
   },
   "bugs": {
     "url": "https://github.com/Epsor/epsor-v2/issues"
   },
   "dependencies": {
     "@epsor/dto": "^2.0.0",
-    "kafka-streams": "^4.11.0"
+    "kafka-streams": "^4.12.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.4.4",
