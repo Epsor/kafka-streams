@@ -50,7 +50,7 @@ class StreamFactory {
   /**
    *
    * @param {String} eventName - Event name (error)
-   * @param {function} cb - Event callback
+   * @param {Function} cb - Event callback
    */
   on(eventName, cb) {
     this.kafkaStreams.on(eventName, cb);
