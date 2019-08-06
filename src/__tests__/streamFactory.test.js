@@ -5,7 +5,7 @@ import StreamFactory from '../streamFactory';
 const defaultEnv = process.env;
 
 describe('StreamFactory', () => {
-  describe('Contructor', () => {
+  describe('Constructor', () => {
     beforeEach(() => {
       process.env = defaultEnv;
       KafkaStreams.KafkaStreams.mockClear();
