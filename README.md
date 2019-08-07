@@ -1,0 +1,1 @@
+[![CircleCI](https://circleci.com/gh/Epsor/kafka-streams.svg?style=svg)](https://circleci.com/gh/Epsor/kafka-streams) [![npm version](https://img.shields.io/npm/v/@epsor/kafka-streams.svg)](https://npmjs.org/package/@epsor/kafka-streams.svg "View this project on npm")
