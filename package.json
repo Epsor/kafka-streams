@@ -1,6 +1,6 @@
 {
   "name": "@epsor/kafka-streams",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Kafka stream abstraction",
   "author": "Epsor",
   "homepage": "https://github.com/Epsor/epsor-v2/tree/master/packages/tunnel-b2c-api-test-kafka-stream#readme",
@@ -44,7 +44,7 @@
     "@babel/cli": "^7.5.0",
     "@babel/core": "^7.5.4",
     "@babel/preset-env": "^7.5.4",
-    "@epsor/dto": "epsor/dto",
+    "@epsor/dto": "^2.0.8",
     "kafka-streams": "^4.12.0"
   },
   "devDependencies": {
