@@ -42,6 +42,36 @@ describe('StreamFactory', () => {
         }),
       );
     });
+
+    it('should call KafkaStreams with username', () => {
+      process.env.KAFKA_USERNAME = 'username';
+
+      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(0);
+      expect(new StreamFactory()).toBeTruthy();
+      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(1);
+      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith(
+        expect.objectContaining({
+          noptions: expect.objectContaining({
+            'sasl.username': 'username',
+          }),
+        }),
+      );
+    });
+
+    it('should call KafkaStreams with password', () => {
+      process.env.KAFKA_PASSWORD = 'password';
+
+      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(0);
+      expect(new StreamFactory()).toBeTruthy();
+      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(1);
+      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith(
+        expect.objectContaining({
+          noptions: expect.objectContaining({
+            'sasl.password': 'password',
+          }),
+        }),
+      );
+    });
   });
 
   describe('on', () => {
