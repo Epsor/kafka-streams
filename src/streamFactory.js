@@ -31,6 +31,8 @@ class StreamFactory {
         'auto.commit.interval.ms': 100,
         'heartbeat.interval.ms': 250,
         'retry.backoff.ms': 250,
+        ...(process.env.KAFKA_USERNAME ? { 'sasl.username': process.env.KAFKA_USERNAME } : {}),
+        ...(process.env.KAFKA_PASSWORD ? { 'sasl.password': process.env.KAFKA_PASSWORD } : {}),
         ...opts,
       },
       tconf: {
