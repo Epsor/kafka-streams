@@ -1,4 +1,4 @@
-import KafkaStreams from 'kafka-streams';
+import KafkaNode from 'kafka-node';
 
 import StreamFactory from '../streamFactory';
 
@@ -8,7 +8,7 @@ describe('StreamFactory', () => {
   describe('Constructor', () => {
     beforeEach(() => {
       process.env = defaultEnv;
-      KafkaStreams.KafkaStreams.mockClear();
+      KafkaNode.ConsumerGroup.mockClear();
     });
 
     it('should call KafkaStreams with default kafkaHost', () => {
@@ -16,14 +16,10 @@ describe('StreamFactory', () => {
         delete process.env.KAFKA_HOST;
       }
 
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(0);
-      expect(new StreamFactory()).toBeTruthy();
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(1);
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith(
+      const stream = new StreamFactory();
+      expect(stream.opts).toEqual(
         expect.objectContaining({
-          noptions: expect.objectContaining({
-            'metadata.broker.list': 'localhost:9092',
-          }),
+          kafkaHost: 'localhost:9092',
         }),
       );
     });
@@ -31,43 +27,35 @@ describe('StreamFactory', () => {
     it('should call KafkaStreams with default kafkaHost', () => {
       process.env.KAFKA_HOST = 'myNewHostValue';
 
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(0);
-      expect(new StreamFactory()).toBeTruthy();
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(1);
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith(
+      const stream = new StreamFactory();
+      expect(stream.opts).toEqual(
         expect.objectContaining({
-          noptions: expect.objectContaining({
-            'metadata.broker.list': 'myNewHostValue',
-          }),
+          kafkaHost: 'myNewHostValue',
         }),
       );
     });
 
-    it('should call KafkaStreams with username', () => {
-      process.env.KAFKA_USERNAME = 'username';
-
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(0);
-      expect(new StreamFactory()).toBeTruthy();
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(1);
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith(
+    it('should call KafkaStreams with given kafkaHost', () => {
+      const stream = new StreamFactory({
+        kafkaHost: 'myHost',
+      });
+      expect(stream.opts).toEqual(
         expect.objectContaining({
-          noptions: expect.objectContaining({
-            'sasl.username': 'username',
-          }),
+          kafkaHost: 'myHost',
         }),
       );
     });
 
-    it('should call KafkaStreams with password', () => {
-      process.env.KAFKA_PASSWORD = 'password';
-
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(0);
-      expect(new StreamFactory()).toBeTruthy();
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledTimes(1);
-      expect(KafkaStreams.KafkaStreams).toHaveBeenCalledWith(
+    it('should call KafkaStreams with api credentials', () => {
+      const stream = new StreamFactory({
+        apiKey: 'apiKey',
+        apiSecret: 'apiSecret',
+      });
+      expect(stream.opts).toEqual(
         expect.objectContaining({
-          noptions: expect.objectContaining({
-            'sasl.password': 'password',
+          sasl: expect.objectContaining({
+            username: 'apiKey',
+            password: 'apiSecret',
           }),
         }),
       );
@@ -75,70 +63,36 @@ describe('StreamFactory', () => {
   });
 
   describe('on', () => {
-    it('should call KafkaStreams.on with sameValues', () => {
-      const callBack = jest.fn();
-      const onMock = jest.fn();
-      KafkaStreams.KafkaStreams = jest.fn(() => ({
-        on: onMock,
-      }));
-
-      expect(onMock).toHaveBeenCalledTimes(0);
-      expect(new StreamFactory().on('event', callBack)).toBeTruthy();
-      expect(onMock).toHaveBeenCalledTimes(1);
-      expect(onMock).toHaveBeenCalledWith('event', callBack);
+    it('should throw when not connected', () => {
+      const stream = new StreamFactory();
+      expect(() => stream.on('error', () => {})).toThrow();
     });
   });
 
   describe('getStream', () => {
-    it('should call KafkaStreams.getKStream with sameValues', () => {
-      const getKStream = jest.fn(() => ({
-        forEach: jest.fn(),
-        start: jest.fn(),
-      }));
-      KafkaStreams.KafkaStreams = jest.fn(() => ({
-        getKStream,
+    it('should call kafkaNode.ConsumerGroup.on with sameValues', () => {
+      const onMock = jest.fn();
+      KafkaNode.ConsumerGroup = jest.fn(() => ({
+        on: onMock,
       }));
 
-      expect(getKStream).toHaveBeenCalledTimes(0);
       expect(new StreamFactory().getStream('topicName', jest.fn())).toBeTruthy();
-      expect(getKStream).toHaveBeenCalledTimes(1);
-      expect(getKStream).toHaveBeenCalledWith('topicName');
+      expect(onMock).toHaveBeenCalledTimes(1);
+      expect(onMock).toHaveBeenCalledWith('message', expect.any(Function));
     });
+  });
 
-    it('should call KafkaStreams.getKStream.forEach with callback', () => {
-      const forEach = jest.fn();
-      const start = jest.fn();
-      const getKStream = jest.fn(() => ({
-        forEach,
-        start,
-      }));
-      KafkaStreams.KafkaStreams = jest.fn(() => ({
-        getKStream,
-      }));
-      const callback = jest.fn();
+  describe('iterate', () => {
+    it('shoul transfort callback', () => {
+      const func = jest.fn();
+      const transformedCallback = StreamFactory.iterate(func);
+      const message = {
+        value: 'Hello !',
+      };
 
-      expect(forEach).toHaveBeenCalledTimes(0);
-      expect(start).toHaveBeenCalledTimes(0);
-      expect(new StreamFactory().getStream('topicName', callback)).toBeTruthy();
-      expect(forEach).toHaveBeenCalledTimes(1);
-      expect(start).toHaveBeenCalledTimes(1);
-    });
-
-    it('should call .value.toString when receiving a message from KafkaStreams.getKStream.forEach', () => {
-      const toString = jest.fn(() => 'str');
-      const callback = jest.fn();
-
-      expect(callback).toHaveBeenCalledTimes(0);
-      expect(toString).toHaveBeenCalledTimes(0);
-      StreamFactory.iterate(callback)({
-        value: {
-          toString,
-        },
-      });
-      expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith('str');
-      expect(toString).toHaveBeenCalledTimes(1);
-      expect(toString).toHaveBeenCalledWith('utf-8');
+      transformedCallback(message);
+      expect(func).toHaveBeenCalledTimes(1);
+      expect(func).toHaveBeenCalledWith('Hello !');
     });
   });
 });

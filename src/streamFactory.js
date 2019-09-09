@@ -1,4 +1,4 @@
-import { KafkaStreams } from 'kafka-streams';
+import kafkaNode from 'kafka-node';
 
 /**
  * @property {KafkaStreams} kafkaStreams
@@ -8,45 +8,30 @@ class StreamFactory {
    * @param {Object} options         - Stream options
    * @param {String} options.groupId - Stream group identifier
    */
-  constructor({ groupId, ...opts } = {}) {
-    this.kafkaStreams = new KafkaStreams({
-      noptions: {
-        event_cb: true,
-        'metadata.broker.list': process.env.KAFKA_HOST || 'localhost:9092',
-        'group.id': groupId || 'defaultGroup',
-        'client.id': `${groupId}.${process.env.KAFKA_GROUP_ID || '0'}`,
-        'fetch.min.bytes': 100,
-        'fetch.message.max.bytes': 2 * 1024 * 1024,
-        'queued.min.messages': 1,
-        'fetch.error.backoff.ms': 100,
-        'queued.max.messages.kbytes': 50,
-        'fetch.wait.max.ms': 60,
-        'queue.buffering.max.ms': 1000,
-        'batch.num.messages': 10000,
-        'compression.codec': 'snappy',
-        'api.version.request': true,
-        'socket.keepalive.enable': true,
-        'socket.blocking.max.ms': 100,
-        'enable.auto.commit': false,
-        'auto.commit.interval.ms': 100,
-        'heartbeat.interval.ms': 250,
-        'retry.backoff.ms': 250,
-        ...(process.env.KAFKA_USERNAME ? { 'sasl.username': process.env.KAFKA_USERNAME } : {}),
-        ...(process.env.KAFKA_PASSWORD ? { 'sasl.password': process.env.KAFKA_PASSWORD } : {}),
-        ...opts,
-      },
-      tconf: {
-        'auto.offset.reset': 'earliest',
-        'request.required.acks': 1,
-      },
-      batchOptions: {
-        batchSize: 1,
-        commitEveryNBatch: 1,
-        concurrency: 1,
-        commitSync: false,
-        noBatchCommits: false,
-      },
-    });
+  constructor({
+    groupId,
+    kafkaHost = undefined,
+    apiKey = undefined,
+    apiSecret = undefined,
+    ...opts
+  } = {}) {
+    this.opts = {
+      kafkaHost: kafkaHost || process.env.KAFKA_HOST || 'localhost:9092',
+      groupId: groupId || 'defaultGroup',
+      fromOffset: 'earliest',
+      id: `${groupId}.${process.env.KAFKA_GROUP_ID || '0'}`,
+      protocol: ['roundrobin'],
+      ...(apiKey && apiSecret
+        ? {
+            sasl: {
+              mechanism: 'plain',
+              username: apiKey,
+              password: apiSecret,
+            },
+          }
+        : {}),
+      ...opts,
+    };
   }
 
   /**
@@ -55,7 +40,11 @@ class StreamFactory {
    * @param {Function} cb - Event callback
    */
   on(eventName, cb) {
-    this.kafkaStreams.on(eventName, cb);
+    if (!this.consumer) {
+      throw new Error('not connected');
+    }
+    this.consumer.on(eventName, cb);
+
     return this;
   }
 
@@ -67,12 +56,10 @@ class StreamFactory {
    * @param {messageIterator} messageIterator - The callback that handles messages
    */
   getStream(topicName, messageIterator) {
-    const stream = this.kafkaStreams.getKStream(topicName);
+    this.consumer = new kafkaNode.ConsumerGroup(this.opts, topicName);
+    this.on('message', StreamFactory.iterate(messageIterator));
 
-    stream.forEach(StreamFactory.iterate(messageIterator));
-
-    stream.start();
-    return this;
+    return this.consumer;
   }
 
   /**
