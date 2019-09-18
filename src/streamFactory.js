@@ -19,6 +19,7 @@ class StreamFactory {
       kafkaHost: kafkaHost || process.env.KAFKA_HOST || 'localhost:9092',
       groupId: groupId || 'defaultGroup',
       fromOffset: 'earliest',
+      fetchMaxBytes: 1024 * 100, // ~0,1Mo
       id: `${groupId}.${process.env.KAFKA_GROUP_ID || '0'}`,
       protocol: ['roundrobin'],
       ...(apiKey && apiSecret
