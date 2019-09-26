@@ -19,7 +19,11 @@ class StreamFactory {
       kafkaHost: kafkaHost || process.env.KAFKA_HOST || 'localhost:9092',
       groupId: groupId || 'defaultGroup',
       fromOffset: 'earliest',
-      fetchMaxBytes: 1024 * 100, // ~0,1Mo
+      /*
+       * Decrease the fetchMaxBytes option to lower the number of messages by batch.
+       * @TODO: Find a better solution or library (fix issue with librdkafka).
+       */
+      fetchMaxBytes: 1024 * 5,
       id: `${groupId}.${process.env.KAFKA_GROUP_ID || '0'}`,
       protocol: ['roundrobin'],
       ...(apiKey && apiSecret
